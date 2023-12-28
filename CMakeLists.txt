@@ -19,6 +19,7 @@ find_package(tf2_geometry_msgs REQUIRED)
 
 set(msg_files
   "msg/Track.msg"
+  "msg/TrackArray.msg"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -35,15 +36,15 @@ include_directories(include/)
 
 # add_executable(l_shape_tracker src/l_shape_tracker.cpp src/kalman.cpp)
 
-add_executable(cluster src/cluster.cpp src/l_shape_tracker.cpp src/kalman.cpp)
-ament_target_dependencies(cluster rclcpp visualization_msgs tf2 tf2_geometry_msgs )
+add_executable(datmo_node src/main.cpp src/datmo_node.cpp src/cluster.cpp src/l_shape_tracker.cpp src/kalman.cpp)
+ament_target_dependencies(datmo_node rclcpp visualization_msgs tf2 tf2_geometry_msgs )
 # ament_target_dependencies(cluster rclcpp visualization_msgs tf2 tf2_geometry_msgs ${PROJECT_NAME})
 
 install(TARGETS
-  cluster
+  datmo_node
   DESTINATION lib/${PROJECT_NAME})
 
-rosidl_target_interfaces(cluster
+rosidl_target_interfaces(datmo_node
   ${PROJECT_NAME} "rosidl_typesupport_cpp")
 
 ament_package()

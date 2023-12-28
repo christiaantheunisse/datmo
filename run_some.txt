@@ -1,0 +1,6 @@
+To start rosbag data:
+    $ ros2 bag play ~/thesis/ros2_ws/src/datmo/examples/overtakes -l
+
+To run the datmo node:
+    $ ros2 run datmo2 datmo_node
+    
