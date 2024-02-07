@@ -1,0 +1,13 @@
+/datmo_node:
+  ros__parameters:
+    pub_markers: false
+    min_pub_markers: true
+
+    world_frame: map
+    lidar_frame: laser
+    lidar_topic: /scan
+
+    euclidean_distance: 0.25
+    max_cluster_size: 360
+    threshold_distance: 0.2
+

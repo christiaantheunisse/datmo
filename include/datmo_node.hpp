@@ -1,3 +1,5 @@
+#pragma once
+
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 
@@ -55,9 +57,11 @@ class DatmoNode : public rclcpp::Node {
     double euclidean_distance;
     int max_cluster_size;
     bool p_marker_pub;
+    bool p_min_marker_pub;
     bool w_exec_times;
     string lidar_frame;
     string world_frame;
+    string lidar_topic;
 
     rclcpp::TimerBase::SharedPtr timer;
 };

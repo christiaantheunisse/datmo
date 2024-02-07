@@ -3,4 +3,16 @@ To start rosbag data:
 
 To run the datmo node:
     $ ros2 run datmo2 datmo_node
-    
+
+Set the `world_frame` parameter:
+    $ ros2 param set /datmo_node world_frame "map"
+
+Publish static transformer:
+    $ ros2 run tf2_ros static_transform_publisher --x -0.12 --y 0 --z 0 --yaw 0 --pitch 0 --roll 0 --frame-id /ego_pose --child-frame-id /laser
+    $ ros2 run tf2_ros static_transform_publisher --x -0 --y 0 --z 0 --yaw 0 --pitch 0 --roll 0 --frame-id /odom --child-frame-id /map
+
+To run encoder node on RASPBERRY PI; publishes on \left_wheel and \right_wheel:
+    $ ros2 run racing_bot_encoder encoder_node
+
+
+SET THE SIMULATION TIME PARAMETER FOR ROS. THE TRANSFORM MESSAGES HAVE A TIMESTAMP FROM 2020

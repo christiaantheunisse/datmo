@@ -34,12 +34,14 @@ Workaround for: ros::Time::now()
 Changed:
   ros::Time::now();
 To:
-  rclcpp::Time(1, 0); // To be fixed later by getting the node time
+  node_ptr->now();  // This line should work and fix all the problems
 
+  rclcpp::Time(1, 0);  // To be fixed later by getting the node time
 
 */
 
 #include "cluster.hpp"
+#include "datmo_node.hpp"
 
 static inline double normalize_angle_positive(double angle) {
     // Normalizes the angle to be 0 to 2*M_PI.
@@ -64,10 +66,13 @@ static inline double shortest_angular_distance(double from, double to) {
 
 // Constructor definition
 Cluster::Cluster(unsigned long int id, const pointList &new_points, const double &dt, const std::string &world_frame,
-                 const tf2::Stamped<tf2::Transform> &ego_pose) {
+                 const tf2::Stamped<tf2::Transform> &ego_pose, DatmoNode* ptr_to_node) {
     // Cluster::Cluster(unsigned long int id, const pointList &new_points, const double &dt, const std::string
     // &world_frame,
     //                  const tf2::Stamped<tf2::Transform> &ego_pose, rclcpp::Clock::SharedPtr node_clock) {
+
+    node_ptr = ptr_to_node; // Should be defined before `node_ptr` is used in one of the methods
+
     this->id = id;
     this->r = rand() / double(RAND_MAX);
     this->g = rand() / double(RAND_MAX);
@@ -115,7 +120,7 @@ void Cluster::populateTrackingMsgs(const double &dt) {
     // This function populates the datmo/Tracks msgs.
 
     msg_track_box_kf.id = this->id;
-    msg_track_box_kf.odom.header.stamp = rclcpp::Time(1, 0);  // To be fixed later by getting the node time
+    msg_track_box_kf.odom.header.stamp = node_ptr->now();  // This line should work and fix all the problems
 
     msg_track_box_kf.odom.header.frame_id = frame_name;
     msg_track_box_kf.odom.pose.pose.position.x = cx;
@@ -238,7 +243,7 @@ void Cluster::rectangleFitting(const pointList &new_cluster) {
 }
 visualization_msgs::msg::Marker Cluster::getBoundingBoxVisualisationMessage() {
     visualization_msgs::msg::Marker bb_msg;
-    bb_msg.header.stamp = rclcpp::Time(1, 0);  // To be fixed later by getting the node time
+    bb_msg.header.stamp = node_ptr->now();  // This line should work and fix all the problems
 
     bb_msg.header.frame_id = frame_name;
     bb_msg.ns = "bounding_boxes";
@@ -268,7 +273,7 @@ visualization_msgs::msg::Marker Cluster::getBoundingBoxVisualisationMessage() {
 visualization_msgs::msg::Marker Cluster::getBoxModelKFVisualisationMessage() {
     visualization_msgs::msg::Marker bb_msg;
 
-    bb_msg.header.stamp = rclcpp::Time(1, 0);  // To be fixed later by getting the node time
+    bb_msg.header.stamp = node_ptr->now();  // This line should work and fix all the problems
 
     bb_msg.header.frame_id = frame_name;
     bb_msg.ns = "box_models_kf";
@@ -315,7 +320,7 @@ visualization_msgs::msg::Marker Cluster::getBoxModelKFVisualisationMessage() {
 visualization_msgs::msg::Marker Cluster::getLShapeVisualisationMessage() {
     visualization_msgs::msg::Marker l1l2_msg;
 
-    l1l2_msg.header.stamp = rclcpp::Time(1, 0);  // To be fixed later by getting the node time
+    l1l2_msg.header.stamp = node_ptr->now();  // This line should work and fix all the problems
 
     l1l2_msg.header.frame_id = frame_name;
     l1l2_msg.ns = "L-Shapes";
@@ -403,7 +408,7 @@ double Cluster::closenessCriterion(const VectorXd &C1, const VectorXd &C2, const
 visualization_msgs::msg::Marker Cluster::getThetaBoxVisualisationMessage() {
     visualization_msgs::msg::Marker arrow_marker;
     arrow_marker.type = visualization_msgs::msg::Marker::ARROW;
-    arrow_marker.header.stamp = rclcpp::Time(1, 0);  // To be fixed later by getting the node time
+    arrow_marker.header.stamp = node_ptr->now();  // This line should work and fix all the problems
 
     arrow_marker.ns = "thetaBox";
     arrow_marker.action = visualization_msgs::msg::Marker::ADD;
@@ -431,7 +436,7 @@ visualization_msgs::msg::Marker Cluster::getThetaL1VisualisationMessage() {
     visualization_msgs::msg::Marker arrow_marker;
     arrow_marker.header.frame_id = frame_name;
     arrow_marker.type = visualization_msgs::msg::Marker::ARROW;
-    arrow_marker.header.stamp = rclcpp::Time(1, 0);  // To be fixed later by getting the node time
+    arrow_marker.header.stamp = node_ptr->now();  // This line should work and fix all the problems
 
     arrow_marker.ns = "thetaL1";
     arrow_marker.action = visualization_msgs::msg::Marker::ADD;
@@ -458,7 +463,7 @@ visualization_msgs::msg::Marker Cluster::getThetaL2VisualisationMessage() {
     visualization_msgs::msg::Marker arrow_marker;
     arrow_marker.type = visualization_msgs::msg::Marker::ARROW;
     // arrow_marker.header.frame_id = frame_name;
-    arrow_marker.header.stamp = rclcpp::Time(1, 0);  // To be fixed later by getting the node time
+    arrow_marker.header.stamp = node_ptr->now();  // This line should work and fix all the problems
 
     arrow_marker.ns = "thetaL2";
     arrow_marker.action = visualization_msgs::msg::Marker::ADD;
@@ -486,7 +491,7 @@ visualization_msgs::msg::Marker Cluster::getArrowVisualisationMessage() {
     arrow_marker.type = visualization_msgs::msg::Marker::ARROW;
     // arrow_marker.header.frame_id = frame_name;
     arrow_marker.header.frame_id = frame_name;
-    arrow_marker.header.stamp = rclcpp::Time(1, 0);  // To be fixed later by getting the node time
+    arrow_marker.header.stamp = node_ptr->now();  // This line should work and fix all the problems
 
     arrow_marker.ns = "velocities";
     arrow_marker.action = visualization_msgs::msg::Marker::ADD;
@@ -514,7 +519,7 @@ visualization_msgs::msg::Marker Cluster::getClosestCornerPointVisualisationMessa
     visualization_msgs::msg::Marker corner_msg;
     corner_msg.type = visualization_msgs::msg::Marker::POINTS;
     corner_msg.header.frame_id = frame_name;
-    corner_msg.header.stamp = rclcpp::Time(1, 0);  // To be fixed later by getting the node time
+    corner_msg.header.stamp = node_ptr->now();  // This line should work and fix all the problems
 
     corner_msg.ns = "closest_corner";
     corner_msg.action = visualization_msgs::msg::Marker::ADD;
@@ -541,7 +546,7 @@ visualization_msgs::msg::Marker Cluster::getBoundingBoxCenterVisualisationMessag
     visualization_msgs::msg::Marker boxcenter_marker;
     boxcenter_marker.type = visualization_msgs::msg::Marker::POINTS;
     boxcenter_marker.header.frame_id = frame_name;
-    boxcenter_marker.header.stamp = rclcpp::Time(1, 0);  // To be fixed later by getting the node time
+    boxcenter_marker.header.stamp = node_ptr->now();  // This line should work and fix all the problems
 
     boxcenter_marker.ns = "bounding_box_center";
     boxcenter_marker.action = visualization_msgs::msg::Marker::ADD;
@@ -564,7 +569,7 @@ visualization_msgs::msg::Marker Cluster::getBoundingBoxCenterVisualisationMessag
 visualization_msgs::msg::Marker Cluster::getClusterVisualisationMessage() {
     visualization_msgs::msg::Marker cluster_vmsg;
     cluster_vmsg.header.frame_id = frame_name;
-    cluster_vmsg.header.stamp = rclcpp::Time(1, 0);  // To be fixed later by getting the node time
+    cluster_vmsg.header.stamp = node_ptr->now();  // This line should work and fix all the problems
 
     cluster_vmsg.ns = "clusters";
     cluster_vmsg.action = visualization_msgs::msg::Marker::ADD;
@@ -594,7 +599,7 @@ visualization_msgs::msg::Marker Cluster::getClusterVisualisationMessage() {
 visualization_msgs::msg::Marker Cluster::getBoxSolidVisualisationMessage() {
     visualization_msgs::msg::Marker marker;
     marker.header.frame_id = frame_name;
-    marker.header.stamp = rclcpp::Time(1, 0);  // To be fixed later by getting the node time
+    marker.header.stamp = node_ptr->now();  // This line should work and fix all the problems
 
     marker.ns = "boxes";
     marker.id = this->id;
@@ -623,7 +628,7 @@ visualization_msgs::msg::Marker Cluster::getBoxSolidVisualisationMessage() {
 visualization_msgs::msg::Marker Cluster::getLineVisualisationMessage() {
     visualization_msgs::msg::Marker line_msg;
 
-    line_msg.header.stamp = rclcpp::Time(1, 0);  // To be fixed later by getting the node time
+    line_msg.header.stamp = node_ptr->now();  // This line should work and fix all the problems
 
     line_msg.header.frame_id = frame_name;
     line_msg.ns = "lines";

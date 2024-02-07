@@ -1,63 +1,70 @@
-// Build a node from scratch
-
 #include "datmo_node.hpp"
 
-// Define here
-
-// Constructor
 DatmoNode::DatmoNode()
-    : Node("datmo_node"),
-      dth(0.2),
-      euclidean_distance(0.25),
-      max_cluster_size(360),
-      p_marker_pub(false),
-      lidar_frame("laser"),
-      world_frame("laser") {
+    : Node("datmo_node") {
     time = this->now();
-    // Handle parameters
-    this->declare_parameter("threshold_distance", dth);
-    this->declare_parameter("euclidean_distance", euclidean_distance);
-    this->declare_parameter("max_cluster_size", max_cluster_size);
-    this->declare_parameter("pub_markers", p_marker_pub);
-    this->declare_parameter("lidar_frame", lidar_frame);
-    this->declare_parameter("world_frame", world_frame);
-    timer = this->create_wall_timer(1000ms, std::bind(&DatmoNode::parameter_timer_callback, this));
+    // ROS parameters
+    this->declare_parameter("threshold_distance", 0.2);
+    this->declare_parameter("euclidean_distance", 0.25);
+    this->declare_parameter("max_cluster_size", 360);
+    this->declare_parameter("pub_markers", false); // publish all the possible information
+    this->declare_parameter("min_pub_markers", false); // publish only the boxes and velocities
+    this->declare_parameter("lidar_frame", "laser");
+    this->declare_parameter("world_frame", "map"); // 
+    this->declare_parameter("lidar_topic", "/scan"); // 
+
+    dth = this->get_parameter("threshold_distance").as_double();
+    euclidean_distance = this->get_parameter("euclidean_distance").as_double();
+    max_cluster_size = this->get_parameter("max_cluster_size").as_int();
+    p_marker_pub = this->get_parameter("pub_markers").as_bool();
+    p_min_marker_pub = this->get_parameter("min_pub_markers").as_bool();
+    lidar_frame = this->get_parameter("lidar_frame").as_string();
+    world_frame = this->get_parameter("world_frame").as_string();
+    lidar_topic = this->get_parameter("lidar_topic").as_string();
+
+    timer = this->create_wall_timer(3000ms, std::bind(&DatmoNode::parameter_timer_callback, this));
 
     // Initialize subscribers and publishers
-    RCLCPP_INFO(this->get_logger(), "Constructor of `datmo_node` called");
+    RCLCPP_INFO(this->get_logger(), "Publishing the markers to `datmo/marker_array` if `pub_markers` is true.");
     pub_marker_array = this->create_publisher<visualization_msgs::msg::MarkerArray>("datmo/marker_array", 10);
+    RCLCPP_INFO(this->get_logger(), "Publishing the kalman filter output to `datmo/box_kf`.");
     pub_tracks_box_kf = this->create_publisher<datmo2::msg::TrackArray>("datmo/box_kf", 10);
 
-    RCLCPP_INFO(this->get_logger(), "Subscribing to `/scan`...");
+    RCLCPP_INFO(this->get_logger(), "Subscribing to `%s` for the lidar measurements.", lidar_topic.c_str());
     sub_scan = this->create_subscription<sensor_msgs::msg::LaserScan>(
-        "/scan", 10, std::bind(&DatmoNode::callback, this, std::placeholders::_1));
-    RCLCPP_INFO(this->get_logger(), "Subscribed to `/scan`");
+        lidar_topic, 10, std::bind(&DatmoNode::callback, this, std::placeholders::_1));
 
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 };
 
 void DatmoNode::parameter_timer_callback() {
-    world_frame = this->get_parameter("world_frame").as_string();
+    dth = this->get_parameter("threshold_distance").as_double();
+    euclidean_distance = this->get_parameter("euclidean_distance").as_double();
+    max_cluster_size = this->get_parameter("max_cluster_size").as_int();
+    p_marker_pub = this->get_parameter("pub_markers").as_bool();
+    p_min_marker_pub = this->get_parameter("min_pub_markers").as_bool();
     lidar_frame = this->get_parameter("lidar_frame").as_string();
-    RCLCPP_INFO(this->get_logger(), "Parameters are update");
+    world_frame = this->get_parameter("world_frame").as_string();
+    lidar_topic = this->get_parameter("lidar_topic").as_string();
+
+    RCLCPP_DEBUG(this->get_logger(), "Parameters are update");
 
     // Make some comparision with this->get_parameters
 }
 
-void DatmoNode::callback(const sensor_msgs::msg::LaserScan::ConstSharedPtr &scan_in) {
-    RCLCPP_INFO(this->get_logger(), "Scan message received");
+void DatmoNode::callback(const sensor_msgs::msg::LaserScan::ConstSharedPtr& scan_in) {
 
-    // delete all Markers
-    visualization_msgs::msg::Marker marker;
-    visualization_msgs::msg::MarkerArray markera;
-    marker.action = 3;
-    markera.markers.push_back(marker);
-    pub_marker_array->publish(markera);
+    // // delete all Markers
+    // visualization_msgs::msg::Marker marker;
+    // visualization_msgs::msg::MarkerArray markera;
+    // marker.action = 3;
+    // markera.markers.push_back(marker);
+    // pub_marker_array->publish(markera);
 
-    // Only if there is a transform between the world and lidar frame continue
-    if (tf_buffer_->canTransform(world_frame, lidar_frame, this->now(), 50ms)) {
-        RCLCPP_INFO(this->get_logger(), "\tTransform found");
+    // if (tf_buffer_->canTransform(world_frame, lidar_frame, this->now(), 50ms)) {
+    if (tf_buffer_->canTransform(world_frame, lidar_frame, tf2::TimePointZero, 50ms)) {
+        // RCLCPP_INFO(this->get_logger(), "\tTransform found");
 
         // Find position of ego vehicle in world frame, so it can be fed through to the cluster objects
         tf2::Stamped<tf2::Transform> ego_pose;
@@ -69,7 +76,7 @@ void DatmoNode::callback(const sensor_msgs::msg::LaserScan::ConstSharedPtr &scan
         // TODO implement varying calculation of dt
         dt = 0.08;
 
-        if (time > this->now())  // Reset in case a rosbag is restart or something
+        if (time > this->now())  // Reset in case a rosbag is looped or something
         {
             clusters.clear();
         }
@@ -153,20 +160,20 @@ void DatmoNode::callback(const sensor_msgs::msg::LaserScan::ConstSharedPtr &scan
         }
 
         // Initialisation of new Cluster Objects
-        RCLCPP_INFO(this->get_logger(), "\t No error yet 1");
+        // RCLCPP_INFO(this->get_logger(), "\t No error yet 1");
 
         for (unsigned int i = 0; i < point_clusters.size(); ++i) {
             if (g_matched[i] == false && point_clusters[i].size() < max_cluster_size) {
-                Cluster cl(cclusters, point_clusters[i], dt, world_frame, ego_pose);  // Pass the time somehow
-                // Cluster cl(cclusters, point_clusters[i], dt, world_frame, ego_pose, this); // Give a pointer of the
-                // node Cluster cl(cclusters, point_clusters[i], dt, world_frame, ego_pose, this->get_clock()); // Give
-                // a pointer to the clock
+                // RCLCPP_INFO(this->get_logger(), "\t\t For loop step");
+
+                Cluster cl(cclusters, point_clusters[i], dt, world_frame, ego_pose,
+                    this);  // Give a pointer of the node to be able to access the clock in the Cluster objects
                 cclusters++;
                 clusters.push_back(cl);
             }
         }
 
-        RCLCPP_INFO(this->get_logger(), "\t No error yet 2");
+        // RCLCPP_INFO(this->get_logger(), "\t No error yet 2");
 
         // Visualizations and msg publications
         visualization_msgs::msg::MarkerArray marker_array;
@@ -187,20 +194,34 @@ void DatmoNode::callback(const sensor_msgs::msg::LaserScan::ConstSharedPtr &scan
                 marker_array.markers.push_back(clusters[i].getLShapeVisualisationMessage());
                 marker_array.markers.push_back(clusters[i].getLineVisualisationMessage());
                 marker_array.markers.push_back(clusters[i].getBoxSolidVisualisationMessage());
+            } else if (p_min_marker_pub){
+                marker_array.markers.push_back(clusters[i].getBoxSolidVisualisationMessage());
+                marker_array.markers.push_back(clusters[i].getArrowVisualisationMessage());
             };
         }
 
+        // delete all Markers
+        visualization_msgs::msg::Marker marker;
+        visualization_msgs::msg::MarkerArray markera;
+        marker.action = 3;
+        markera.markers.push_back(marker);
+        pub_marker_array->publish(markera);
+
+        // publish new markers
         pub_marker_array->publish(marker_array);
         pub_tracks_box_kf->publish(track_array_box_kf);
-        // visualiseGroupedPoints(point_clusters);
-    } else {  // If the tf is not possible init all states at 0
+        if (p_marker_pub) {
+            visualiseGroupedPoints(point_clusters);
+        }
+    }
+    else {  // If the tf is not possible init all states at 0
         RCLCPP_WARN(this->get_logger(), "No transform could be found between %s and %s", lidar_frame.c_str(),
-                    world_frame.c_str());
+            world_frame.c_str());
     };
 }
 
 // Function that fills a list provided as reference
-void DatmoNode::Clustering(const sensor_msgs::msg::LaserScan::ConstSharedPtr &scan_in, vector<pointList> &clusters) {
+void DatmoNode::Clustering(const sensor_msgs::msg::LaserScan::ConstSharedPtr& scan_in, vector<pointList>& clusters) {
     scan = *scan_in;
 
     int cpoints = 0;
@@ -240,7 +261,7 @@ void DatmoNode::Clustering(const sensor_msgs::msg::LaserScan::ConstSharedPtr &sc
         double dtheta = polar[i + 1][1] - polar[i][1];
         double adaptive = min(polar[i][0], polar[i + 1][0]) * (sin(dth)) / (sin(l - (dth))) + s;  // Dthreshold
         d = sqrt(pow(polar[i][0], 2) + pow(polar[i + 1][0], 2) -
-                 2 * polar[i][0] * polar[i + 1][0] * cos(polar[i + 1][1] - polar[i][1]));
+            2 * polar[i][0] * polar[i + 1][0] * cos(polar[i + 1][1] - polar[i][1]));
         // ROS_INFO_STREAM("distance: "<<dth<<", adapt: "<<adaptive<<", dtheta: "<<dtheta);
         // if(polar[i+1][1]- polar[i][1]<0){
         // ROS_INFO_STREAM("problem");
@@ -302,7 +323,8 @@ void DatmoNode::Clustering(const sensor_msgs::msg::LaserScan::ConstSharedPtr &sc
             if (fl == true) {
                 x = polar[j][0] * cos(polar[j][1]);  // x = r × cos( θ )
                 y = polar[j][0] * sin(polar[j][1]);  // y = r × sin( θ )
-            } else {
+            }
+            else {
                 x = polar[j - len][0] * cos(polar[j - len][1]);  // x = r × cos( θ )
                 y = polar[j - len][0] * sin(polar[j - len][1]);  // y = r × sin( θ )
             }
@@ -314,7 +336,7 @@ void DatmoNode::Clustering(const sensor_msgs::msg::LaserScan::ConstSharedPtr &sc
 }
 
 // Function that fills a list provided as reference
-void DatmoNode::transformPointList(const pointList &in, pointList &out) {
+void DatmoNode::transformPointList(const pointList& in, pointList& out) {
     // This funcion transforms pointlist between coordinate frames and it is a wrapper for the
     // transformPoint function
     // There is not try catch block because it is supposed to be already encompassed into one
@@ -335,7 +357,7 @@ void DatmoNode::transformPointList(const pointList &in, pointList &out) {
 }
 
 // function that publishes
-void DatmoNode::visualiseGroupedPoints(const vector<pointList> &point_clusters) {
+void DatmoNode::visualiseGroupedPoints(const vector<pointList>& point_clusters) {
     // Publishing the clusters with different colors
     visualization_msgs::msg::MarkerArray marker_array;
     // Populate grouped points message

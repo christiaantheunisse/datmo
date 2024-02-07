@@ -51,10 +51,12 @@ using namespace Eigen;
 typedef std::pair<double, double> Point;
 typedef std::vector<Point> pointList;
 
+class DatmoNode;
+
 class Cluster {
    public:
     Cluster(unsigned long int id, const pointList &, const double &, const std::string &,
-            const tf2::Stamped<tf2::Transform> &ego_pose);
+            const tf2::Stamped<tf2::Transform> &ego_pose, DatmoNode* ptr_to_node);
     //     Cluster(unsigned long int id, const pointList &, const double &, const std::string &,
     //             const tf2::Stamped<tf2::Transform> &ego_pose, DatmoNode *datmo_node);
     //     Cluster(unsigned long int id, const pointList &, const double &, const std::string &,
@@ -116,4 +118,6 @@ class Cluster {
     Point lineIntersection(double &, double &, double &, double &, double &, double &);
     double perpendicularDistance(const Point &, const Point &, const Point &);
     void ramerDouglasPeucker(const std::vector<Point> &, double, std::vector<Point> &);
+
+    DatmoNode* node_ptr;
 };

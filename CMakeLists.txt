@@ -44,6 +44,12 @@ install(TARGETS
   datmo_node
   DESTINATION lib/${PROJECT_NAME})
 
+install(
+  DIRECTORY
+  config
+  DESTINATION share/${PROJECT_NAME}
+)
+
 rosidl_target_interfaces(datmo_node
   ${PROJECT_NAME} "rosidl_typesupport_cpp")
 
