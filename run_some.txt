@@ -2,7 +2,7 @@ To start rosbag data:
     $ ros2 bag play ~/thesis/ros2_ws/src/datmo/examples/overtakes -l
 
 To run the datmo node:
-    $ ros2 run datmo2 datmo_node
+    $ ros2 run datmo datmo_node
 
 Set the `world_frame` parameter:
     $ ros2 param set /datmo_node world_frame "map"

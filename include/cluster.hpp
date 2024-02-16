@@ -37,7 +37,7 @@
 #include <eigen3/Eigen/Dense>
 #include <visualization_msgs/msg/marker.hpp>
 
-#include "datmo2/msg/track.hpp"
+#include "datmo/msg/track.hpp"
 #include "l_shape_tracker.hpp"
 #include "rclcpp/rclcpp.hpp"
 // #include <tf2_geometry_msgs/msg/tf2_geometry_msgs.hpp>
@@ -65,7 +65,7 @@ class Cluster {
     std::string frame_name;
     Point ego_coordinates;
 
-    datmo2::msg::Track msg_track_box_kf;
+    datmo::msg::Track msg_track_box_kf;
 
     unsigned long int id;   // identifier for the cluster
     unsigned long int age;  // age of the cluster

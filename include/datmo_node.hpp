@@ -3,7 +3,7 @@
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 
-#include <datmo2/msg/track_array.hpp>
+#include <datmo/msg/track_array.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -38,7 +38,7 @@ class DatmoNode : public rclcpp::Node {
 
    private:
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr pub_marker_array;
-    rclcpp::Publisher<datmo2::msg::TrackArray>::SharedPtr pub_tracks_box_kf;
+    rclcpp::Publisher<datmo::msg::TrackArray>::SharedPtr pub_tracks_box_kf;
     rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr sub_scan;
 
     sensor_msgs::msg::LaserScan scan;

@@ -28,7 +28,7 @@ DatmoNode::DatmoNode()
     RCLCPP_INFO(this->get_logger(), "Publishing the markers to `datmo/marker_array` if `pub_markers` is true.");
     pub_marker_array = this->create_publisher<visualization_msgs::msg::MarkerArray>("datmo/marker_array", 10);
     RCLCPP_INFO(this->get_logger(), "Publishing the kalman filter output to `datmo/box_kf`.");
-    pub_tracks_box_kf = this->create_publisher<datmo2::msg::TrackArray>("datmo/box_kf", 10);
+    pub_tracks_box_kf = this->create_publisher<datmo::msg::TrackArray>("datmo/box_kf", 10);
 
     RCLCPP_INFO(this->get_logger(), "Subscribing to `%s` for the lidar measurements.", lidar_topic.c_str());
     sub_scan = this->create_subscription<sensor_msgs::msg::LaserScan>(
@@ -177,7 +177,7 @@ void DatmoNode::callback(const sensor_msgs::msg::LaserScan::ConstSharedPtr& scan
 
         // Visualizations and msg publications
         visualization_msgs::msg::MarkerArray marker_array;
-        datmo2::msg::TrackArray track_array_box_kf;
+        datmo::msg::TrackArray track_array_box_kf;
         for (unsigned int i = 0; i < clusters.size(); i++) {
             track_array_box_kf.tracks.push_back(clusters[i].msg_track_box_kf);
 

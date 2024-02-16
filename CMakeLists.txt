@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(datmo2)
+project(datmo)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -13,7 +13,6 @@ find_package(tf2_ros REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(nav_msgs REQUIRED)
-# find_package(datmo2 REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 
